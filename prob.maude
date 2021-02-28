@@ -1,0 +1,352 @@
+fmod PROBABILITY is
+    protecting RAT .
+    protecting CONVERSION .
+    protecting STRING .
+
+    sorts Elem Elems Pair Event Events .
+    subsort Event < Events .
+    subsort Rat < Elem < Elems .
+    subsort Pair < Elem .
+
+    op mt : -> Events [ctor] .
+    op [_,_] : Rat Elems -> Event [ctor] .
+    op __ : Events Events -> Events [ctor comm assoc id: mt] .
+
+    op nil : -> Elems [ctor] .
+    op _;_ : Elems Elems -> Elems [ctor assoc id: nil] .
+    op <_,_> : Elems Elems -> Pair [ctor] .
+
+    vars E E1 E2 F G : Events .
+    vars P Q R P1 P2 P3 : Rat .
+    vars X Y Z W : Elem .
+    vars Xs Ys Zs Ws : Elems .
+    vars A B C : Event .
+
+    op _/\_ : Events Events -> Events [comm assoc] .
+    eq mt /\ E = E .
+    eq E /\ E = E .
+    eq (A E1) /\ (B E2) =
+        if A == B then
+            A (E1 /\ E2)
+        else
+            (E1 /\ E2)
+        fi .
+
+    op |_| : Elems -> Nat .
+    eq | nil | = 0 .
+    eq | X ; Xs | = 1 + | Xs | .
+
+    eq [P,Xs] [Q,Xs] = [P + Q,Xs] .
+
+    op Pr : Events -> Rat .
+    eq Pr(mt) = 0 .
+    eq Pr([P,Xs] E) = P + Pr(E) .
+
+    op _|_ : Events Events -> Events .
+    eq E1 | E2 = normalize(E1 /\ E2) .
+
+    op normalize : Events -> Events .
+    eq normalize(E) = $normalize(Pr(E), E) .
+    op $normalize : Rat Events -> Events .
+    eq $normalize(P, mt) = mt .
+    eq $normalize(P, [Q,Xs] E) = [Q / P, Xs] $normalize(P, E) .
+
+    vars N M : Nat .
+
+    op die : Nat -> Events .
+    op $die : Nat Nat -> Events .
+    eq die(N) = $die(N, 1) .
+    eq $die(N, N) = [1 / N, N] .
+    eq $die(N, M) = [1 / N, M] $die(N, M + 1) .
+
+    op Ind : Events -> Events .
+    eq Ind(E) = [Pr(E), 1] [1 - Pr(E), 0] .
+
+    op InvInd : Events -> Events .
+    eq InvInd(E) = [1 - Pr(E), 1] [Pr(E), 0] .
+
+    op _=_ : Events Elems -> Events .
+    eq (mt = Xs) = mt .
+    eq (([P,Ys] E) = Xs) = if Xs == Ys then [P,Ys] (E = Xs) else (E = Xs) fi .
+
+    op _<_ : Events Elem -> Events .
+    eq mt < X = mt .
+    eq ([P,Q ; Xs] E) < Y = if Q < Y then [P,Q ; Xs] (E < Y) else (E < Y) fi .
+    eq ([P,< X ; Xs, Ys > ; Zs] E) < Y = if X < Y then [P,< X ; Xs, Ys > ; Zs] (E < Y) else (E < Y) fi .
+
+    op _<=_ : Events Elem -> Events .
+    eq mt <= X = mt .
+    eq ([P,Q ; Xs] E) <= Y = if Q <= Y then [P,Q ; Xs] (E <= Y) else (E <= Y) fi .
+    eq ([P,< X ; Xs, Ys > ; Zs] E) <= Y = if X <= Y then [P,< X ; Xs, Ys > ; Zs] (E <= Y) else (E <= Y) fi .
+
+    op _>_ : Events Elem -> Events .
+    eq mt > X = mt .
+    eq ([P,Q ; Xs] E) > Y = if Q > Y then [P,Q ; Xs] (E > Y) else (E > Y) fi .
+    eq ([P,< X ; Xs, Ys > ; Zs] E) > Y = if X > Y then [P,< X ; Xs, Ys > ; Zs] (E > Y) else (E > Y) fi .
+
+    op _>=_ : Events Elem -> Events .
+    eq mt >= X = mt .
+    eq ([P,Q ; Xs] E) >= Y = if Q >= Y then [P,Q ; Xs] (E >= Y) else (E >= Y) fi .
+    eq ([P,< X ; Xs, Ys > ; Zs] E) >= Y = if X >= Y then [P,< X ; Xs, Ys > ; Zs] (E >= Y) else (E >= Y) fi .
+
+    op _<>_ : Events Events -> Events .
+    eq E1 <> E2 = concatPairs(E1 x E2) .
+
+    op concatPairs : Events -> Events .
+    eq concatPairs(mt) = mt .
+    eq concatPairs([P, < < Xs, Ys >, < Zs, Ws > >] E) = [P, < Xs ; Zs, Ys ; Ws >] concatPairs(E) .
+
+    op conditional : Events Elems Elems -> Events .
+    eq conditional(mt, Xs, Ys) = mt .
+    eq conditional([P,Xs] E, Ys, Zs) = (if Xs == Ys then [P,Zs] else [P,Xs] fi) conditional(E, Ys, Zs) .
+
+    op scale : Rat Events -> Events .
+    eq scale(P, mt) = mt .
+    eq scale(P, [Q, Xs] E) = [P * Q, Xs] scale(P, E) .
+
+    op _@_ : Elems Events -> Events .
+    eq Ys @ mt = mt .
+    eq Ys @ ([P, Xs] E) = [P, Ys ; Xs] (Ys @ E) .
+
+    op _@_ : Events Elems -> Events .
+    eq mt @ Ys = mt .
+    eq ([P, Xs] E) @ Ys = [P, Xs ; Ys] (E @ Ys) .
+
+    op withFst : Elems Events -> Events .
+    eq withFst(Xs, mt) = mt .
+    eq withFst(Xs, [P, Ys] E) = [P, < Xs, Ys >] withFst(Xs, E) .
+
+    op withSnd : Elems Events -> Events .
+    eq withSnd(Xs, mt) = mt .
+    eq withSnd(Xs, [P, Ys] E) = [P, < Ys, Xs >] withSnd(Xs, E) .
+
+    op swap : Events -> Events .
+    eq swap(mt) = mt .
+    eq swap([P, < Xs, Ys >] E) = [P, < Ys, Xs >] swap(E) .
+
+    op _x_ : Events Events -> Events [assoc] .
+    eq mt x E = mt .
+    eq ([P,Xs] E1) x E2 = scale(P, withFst(Xs, E2)) (E1 x E2) .
+
+    op sum : Elems -> Elem .
+    eq sum(nil) = 0 .
+    eq sum(P ; Xs) = P + sum(Xs) .
+    eq sum(< Xs, Ys > ; Zs) = sum(Xs) + sum(Ys) + sum(Zs) .
+    op sum : Pair -> Elem .
+    eq sum(< Xs, Ys >) = sum(Xs) + sum(Ys) .
+    op sum : Events -> Events .
+    eq sum(mt) = mt .
+    eq sum([P,Xs] E) = [P, sum(Xs)] sum(E) .
+
+    op sub : Events -> Events .
+    eq sub(mt) = mt .
+    eq sub([P,< Xs , Ys >] E) = [P, sum(Xs) - sum(Ys)] sub(E) .
+
+    op prod : Elems -> Elem .
+    eq prod(nil) = 1 .
+    eq prod(P ; Xs) = P * prod(Xs) .
+    eq prod(< Xs, Ys > ; Zs) = prod(Xs) * prod(Ys) * prod(Zs) .
+    op prod : Pair -> Elem .
+    eq prod(< Xs, Ys >) = prod(Xs) * prod(Ys) .
+    op prod : Events -> Events .
+    eq prod(mt) = mt .
+    eq prod([P,Xs] E) = [P, prod(Xs)] prod(E) .
+
+    op max : Elems -> Elem .
+    eq max(nil) = 0 .
+    eq max(P ; Xs) = max(P, max(Xs)) .
+    eq max(< Xs, Ys > ; Zs) = max(max(Xs), max(Ys), max(Zs)) .
+    op max : Pair -> Elem .
+    eq max(< Xs, Ys >) = max(max(Xs), max(Ys)) .
+    op max : Events -> Events .
+    eq max(mt) = mt .
+    eq max([P,Xs] E) = [P, max(Xs)] max(E) .
+
+    op max : Events Events -> Events .
+    eq max(E1, E2) = max(E1 x E2) .
+
+    op min : Events -> Events .
+    eq min(mt) = mt .
+    eq min([P, < X, Y >] E) = [P, min(X, Y)] min(E) .
+
+    op min : Events Events -> Events .
+    eq min(E1, E2) = min(E1 x E2) .
+
+    op _-_ : Events Events -> Events .
+    eq E1 - E2 = sub(E1 x E2) .
+
+    op _+_ : Events Events -> Events [assoc] .
+    eq E1 + E2 = sum(E1 x E2) .
+
+    op _+_ : Events Nat -> Events .
+    eq E + N = E + pure(N) .
+
+    op _*_ : Events Events -> Events [assoc] .
+    eq E1 * E2 = prod(E1 x E2) .
+
+    op _*_ : Rat Events -> Events .
+    eq P * E = E * pure(P) .
+
+    op gcd : Events -> Events .
+    eq gcd(mt) = mt .
+    eq gcd([P, N ; M] E) = [P, gcd(N, M)] gcd(E) .
+
+    op Ex[_] : Events -> Elem .
+    eq Ex[mt] = 0 .
+    eq Ex[[P,X] E] = P * X + Ex[E] .
+
+    op pure : Elem -> Event .
+    eq pure(X) = [1,X] .
+
+    op fair : Elems -> Events .
+    op $fair : Nat Elems -> Events .
+    eq fair(Xs) = $fair(| Xs |, Xs) .
+    eq $fair(N, nil) = mt .
+    eq $fair(N, X ; Xs) = [1 / N, X] $fair(N, Xs) .
+
+    op bernoulli : Rat Elem Elem -> Events .
+    eq bernoulli(P, X, Y) = [P, X] [1 - P, Y] .
+
+    op coin : Rat -> Events .
+    eq coin(P) = [P, 1] [1 - P, 0] .
+
+    op rotations : Elems -> Events .
+    op $rotations : Nat Nat Elems -> Events .
+    eq rotations(Xs) = $rotations(| Xs |, | Xs |, Xs) .
+    eq $rotations(N, 0, Xs) = mt .
+    eq $rotations(N, s(M), X ; Xs) = [1 / N, X ; Xs] $rotations(N, M, Xs ; X) .
+endfm
+
+fmod DND is
+    extending PROBABILITY .
+
+    sorts Roll .
+
+    vars N M : Nat .
+    vars E E1 E2 F G : Events .
+    vars P Q R P1 P2 P3 : Rat .
+    vars X Y Z W : Elem .
+    vars Xs Ys Zs Ws : Elems .
+
+    op _d_ : Nat Nat -> Events .
+    eq 0 d M = [1,0] .
+    eq s(N) d M = die(M) + (N d M) .
+
+    --- In the case of critical failure, don't sum, just make it all 0.
+    op check : Events -> Events .
+    eq check(E) = InvInd(E < 2) * sum(E) .
+
+    sorts Creature Weapon .
+    subsort Creature < Elem .
+    op weapon : Nat Events Events -> Weapon [ctor] .
+    op optWeapon : Events -> Weapon [ctor] .
+    op creature : String Nat Nat Weapon -> Creature [ctor] .
+    op name : String -> Elem [ctor] .
+
+    vars HP HP1 HP2 AC AC1 AC2 : Nat .
+    vars Atk Atk1 Atk2 Dmg Dmg1 Dmg2 : Events .
+    vars Name Name1 Name2 : String .
+    vars Creature1 Creature2 : Creature .
+    vars Weapon1 Weapon2 : Weapon .
+
+    op hp : Creature -> Nat .
+    eq hp(creature(Name, HP, AC, Weapon1)) = HP .
+
+    op winner : Elems Elems -> Elem .
+    eq winner(nil, creature(Name, HP, AC, Weapon1) ; Ys) = name(Name) .
+    eq winner(creature(Name, HP, AC, Weapon1) ; Xs, nil) = name(Name) .
+
+    op withHP : Creature Events -> Events .
+    eq withHP(creature(Name, HP, AC, Weapon1), mt) = mt .
+    eq withHP(creature(Name, HP, AC, Weapon1), [P, X] E) =
+        [P, creature(Name, X, AC, Weapon1)] withHP(creature(Name, HP, AC, Weapon1), E) .
+
+    op totalDamage : Nat Weapon -> Events .
+    eq totalDamage(AC, weapon(0, Atk, Dmg)) = pure(0) .
+    eq totalDamage(AC, weapon(s(N), Atk, Dmg)) = Ind(Atk >= AC) * Dmg + totalDamage(AC, weapon(N, Atk, Dmg)) .
+    eq totalDamage(AC, optWeapon(Dmg)) = Dmg .
+
+    op attack : Creature Creature -> Events .
+    eq attack(creature(Name1, HP1, AC1, Weapon1), creature(Name2, HP2, AC2, Weapon2)) =
+        withHP(creature(Name2, HP2, AC2, Weapon2), max(pure(0), pure(HP2) - totalDamage(AC2, Weapon1))) .
+
+    op attackEach : Elems Events -> Events .
+    eq attackEach(nil, E) = withSnd(nil, E) .
+    eq attackEach(Xs, mt) = mt .
+    eq attackEach(Xs, [P, nil] E) = attackEach(Xs, E) .
+    eq attackEach(Creature1 ; Xs, [P, Creature2 ; Ys] E) =
+        if hp(Creature2) > 0 then
+            (pure(< nil, Creature1 >) <> attackEach(Xs, scale(P, attack(Creature1, Creature2) @ Ys)))
+            attackEach(Creature1 ; Xs, E)
+        else
+            attackEach(Creature1 ; Xs, [P, Ys] E)
+        fi .
+
+    op combat : Events -> Events .
+    eq combat(mt) = mt .
+    eq combat([P, < Xs , Ys >] E) = scale(P, attackEach(Xs, [1, Ys])) combat(E) .
+
+    eq [P, < Xs, Ys ; creature(Name, 0, AC, Weapon1) ; Zs > ] = [P, < Xs, Ys ; Zs > ] .
+    eq [P, < Xs ; creature(Name, 0, AC, Weapon1) ; Ys, Zs > ] = [P, < Xs ; Ys, Zs > ] .
+
+    op fight : Nat Events -> Events .
+    eq fight(0, E) = E .
+    eq fight(N, mt) = mt .
+    eq fight(s(N), [P, < Xs, Ys >] E) =
+        fight(s(N), E)
+        if | Xs | > 0 and | Ys | > 0 then
+            fight(N, combat([P, < Xs, Ys >]))
+        else
+            [P, winner(Xs, Ys)]
+        fi .
+
+    ops d4 d6 d8 d10 d12 d20 : -> Events .
+    eq d4 = die(4) .
+    eq d6 = die(6) .
+    eq d8 = die(8) .
+    eq d10 = die(10) .
+    eq d12 = die(12) .
+    eq d20 = die(20) .
+
+    op inProgress : -> Elem [ctor] .
+
+    op fightResults : Events -> Events .
+    eq fightResults(mt) = mt .
+    eq fightResults([P, name(Name)] E) = [P, name(Name)] fightResults(E) .
+    eq fightResults([P, < Xs, Ys >] E) =
+        if | Xs | > 0 and | Ys | > 0 then
+            [P, inProgress] fightResults(E)
+        else
+            [P, winner(Xs, Ys)] fightResults(E)
+        fi .
+
+    op kobold : String -> Creature .
+    eq kobold(Name) = creature(Name, 5, 12, weapon(1, check(d20 x pure(4)), d4 + 2)) .
+
+    op koboldOpt : String Nat -> Creature .
+    eq koboldOpt(Name, AC) = creature(Name, 5, 12, optWeapon(Ind(check(d20 x pure(4)) >= AC) * (d4 + 2))) .
+
+    op fireGiant : String -> Creature .
+    eq fireGiant(Name) = creature(Name, 162, 18, weapon(2, check(d20 x pure(11)), (6 d 6) + 7)) .
+
+    op fireGiantOpt : String Nat Nat -> Creature .
+    eq fireGiantOpt(Name, HP, AC) = creature(Name, 162, 18, optWeapon(min(pure(HP), Ind(check(d20 x pure(11)) >= AC) * ((6 d 6) + 7) + Ind(check(d20 x pure(11)) >= AC) * ((6 d 6) + 7)))) .
+
+    op gnoll : String -> Creature .
+    eq gnoll(Name) = creature(Name, 22, 15, weapon(1, check(d20 x pure(4)), d8 + 2)) .
+
+    op gnollOpt : String Nat Nat -> Creature .
+    eq gnollOpt(Name, HP, AC) = creature(Name, 22, 15, optWeapon(min(pure(HP), Ind(check(d20 x pure(4)) >= AC) * (d8 + 2)))) .
+endfm
+
+--- red Pr(check(die(20) x die(4) x pure(8)) > 15) .
+--- red attack(kobold("Bex"), kobold("Spurt")) .
+--- red fightResults(fight(6, [1, < kobold("Jeff") , kobold("Spurt") >])) .
+--- red fightResults(fight(12, [1, < gnollOpt("Jeff", 5, 12) , koboldOpt("Spurt", 15) ; koboldOpt("Spurt", 15) ; koboldOpt("Spurt", 15) >])) .
+--- red fireGiantOpt("Jeff", 5, 12) .
+--- red fightResults(fight(7, [1, < fireGiantOpt("Jeff", 5, 12) , kobold("Spurt") ; kobold("Spurt") ; kobold("Spurt") >])) .
+--- red fightResults(fight(8, [1, < fireGiantOpt("Jeff", 5, 12) , kobold("Spurt") ; kobold("Spurt") ; kobold("Spurt") >])) .
+--- red fightResults(fight(9, [1, < fireGiantOpt("Jeff", 5, 12) , kobold("Spurt") ; kobold("Spurt") ; kobold("Spurt") >])) .
+--- red fightResults(fight(10, [1, < fireGiantOpt("Jeff", 5, 12) , kobold("Spurt") ; kobold("Spurt") ; kobold("Spurt") >])) .
+--- red fightResults(fight(11, [1, < fireGiantOpt("Jeff", 5, 12) , kobold("Spurt") ; kobold("Spurt") ; kobold("Spurt") >])) .
+
