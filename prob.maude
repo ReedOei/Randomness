@@ -141,6 +141,11 @@ fmod PROBABILITY is
     op sub : Events -> Events .
     eq sub(mt) = mt .
     eq sub([P,< Xs , Ys >] E) = [P, sum(Xs) - sum(Ys)] sub(E) .
+    eq sub([P, Q ; Xs] E) = [P, Q - sum(Xs)] sub(E) .
+
+    op abs : Events -> Events .
+    eq abs(mt) = mt .
+    eq abs([P, X] E) = [P, abs(X)] abs(E) .
 
     op prod : Elems -> Elem .
     eq prod(nil) = 1 .
@@ -210,6 +215,35 @@ fmod PROBABILITY is
     op coin : Rat -> Events .
     eq coin(P) = [P, 1] [1 - P, 0] .
 
+    op bins : Nat -> Events .
+    op $bins : Nat Nat -> Events .
+    eq bins(N) = $bins(N, N) .
+    eq $bins(N, 0) = [1 / N, $inBin(N, 1)] .
+    eq $bins(N, s(M)) = [1 / N, $inBin(N, s(M))] $bins(N, M) .
+
+    op $replicate : Nat Elem -> Elems .
+    eq $replicate(0, X) = nil .
+    eq $replicate(s(N), X) = X ; $replicate(N, X) .
+    op $inBin : Nat Nat -> Elems .
+    eq $inBin(N, M) = $replicate(M - 1, 0) ; 1 ; $replicate(N - M, 0) .
+
+    op repeat : Nat Events -> Events .
+    eq repeat(0, E) = mt .
+    eq repeat(1, E) = E .
+    eq repeat(s(s(N)), E) = E ++ repeat(s(N), E) .
+
+    op _++_ : Elem Elem -> Elem [assoc] .
+    eq P ++ Q = P + Q .
+    op _++_ : Elems Elems -> Elems [assoc] .
+    eq nil ++ Ys = Ys .
+    eq Xs ++ nil = Xs .
+    eq (X ; Xs) ++ (Y ; Ys) = (X ++ Y) ; (Xs ++ Ys) .
+    op _++_ : Events Events -> Events [assoc] .
+    op pairSum : Events -> Events .
+    eq pairSum(mt) = mt .
+    eq pairSum([P, < Xs, Ys >] E) = [P, Xs ++ Ys] pairSum(E) .
+    eq E1 ++ E2 = pairSum(E1 x E2) .
+
     op rotations : Elems -> Events .
     op $rotations : Nat Nat Elems -> Events .
     eq rotations(Xs) = $rotations(| Xs |, | Xs |, Xs) .
@@ -229,8 +263,7 @@ fmod DND is
     vars Xs Ys Zs Ws : Elems .
 
     op _d_ : Nat Nat -> Events .
-    eq 0 d M = [1,0] .
-    eq s(N) d M = die(M) + (N d M) .
+    eq N d M = repeat(N, die(M)) .
 
     --- In the case of critical failure, don't sum, just make it all 0.
     op check : Events -> Events .
@@ -300,7 +333,8 @@ fmod DND is
             [P, winner(Xs, Ys)]
         fi .
 
-    ops d4 d6 d8 d10 d12 d20 : -> Events .
+    ops d2 d4 d6 d8 d10 d12 d20 : -> Events .
+    eq d2 = die(2) .
     eq d4 = die(4) .
     eq d6 = die(6) .
     eq d8 = die(8) .
